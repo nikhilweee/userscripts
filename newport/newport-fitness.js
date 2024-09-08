@@ -27,6 +27,12 @@ function runScriptWhenReady() {
 }
 
 async function getAvailableTimes(name, data) {
+  console.log(
+    "fetching times for trainer",
+    data.trainerExternalID,
+    "on",
+    data.startTimeUtc
+  );
   let response = await fetch(
     "https://api.trainerize.com/v03/abcFinancial/getAvailableTimes",
     {
@@ -52,8 +58,10 @@ async function getAvailableTimes(name, data) {
 
 async function handleSwim() {
   // add a four hour offset to the current time
-  let startDate = new Date().toJSON().slice(0, 10) + " 04:00:00";
-  let tomorrow = new Date(Date.now() + 86400000);
+  let date = document.querySelector("div.selfBookingDialog input");
+  let today = new Date(date.value);
+  let startDate = today.toJSON().slice(0, 10) + " 04:00:00";
+  let tomorrow = new Date(today.setDate(today.getDate() + 1));
   let endDate = tomorrow.toJSON().slice(0, 10) + " 04:00:00";
 
   let data = {
@@ -74,14 +82,25 @@ async function handleSwim() {
   let res = await Promise.all(promises);
   res = Object.fromEntries(res);
 
-  // console.log("res", JSON.stringify(res, null, 2));
+  let swimTimes = document.getElementById("swimTimes");
 
-  let times = document.createElement("pre");
-  times.textContent = JSON.stringify(res, null, 2);
+  if (swimTimes === null) {
+    // add a blank area to hold swim times
+    let info = document.createElement("div");
+    let times = JSON.stringify(res, null, 2);
+    info.innerHTML = `
+      <button class="ant-btn" onclick="handleSwim()">Refresh</button>
+      <pre id="swimTimes">${times}</pre>
+    `;
+    document
+      .querySelector("div.selfBookingDialog")
+      .insertAdjacentElement("afterend", info);
+    swimTimes = document.getElementById("swimTimes");
+  }
 
-  document
-    .querySelector("div.selfBookingDialog")
-    .insertAdjacentElement("afterend", times);
+  swimTimes.innerText = JSON.stringify(res, null, 2);
+
+  // date.addEventListener("change", handleSwim);
 }
 
 function runScript() {
@@ -114,6 +133,8 @@ function runScript() {
     }
     return oldXHRsetRequestHeader.apply(this, arguments);
   };
+
+  window.handleSwim = handleSwim;
 }
 
 window.addEventListener("load", runScriptWhenReady);
