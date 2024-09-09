@@ -57,7 +57,7 @@ async function getAvailableTimes(name, data) {
 }
 
 async function handleSwim() {
-  // add a four hour offset to the current time
+  // prepare request data for fetching available times
   let date = document.querySelector("div.selfBookingDialog input");
   let today = new Date(date.value);
   let startDate = today.toJSON().slice(0, 10) + " 04:00:00";
@@ -74,18 +74,37 @@ async function handleSwim() {
     endTimeUtc: endDate,
   };
 
+  // send requests to fetch available times
   let promises = state.swim.trainers.map((trainer) => {
     data.trainerExternalID = trainer.externalTrainerID;
     return getAvailableTimes(trainer.name, data);
   });
 
   let res = await Promise.all(promises);
+
+  // Format results and sort by time
   res = Object.fromEntries(res);
+  let transposed = {};
+  for (const [lane, times] of Object.entries(res)) {
+    times.forEach((time) => {
+      if (!transposed[time]) {
+        transposed[time] = [];
+      }
+      transposed[time].push(lane);
+    });
+  }
+  res = {};
+  Object.keys(transposed)
+    .sort((a, b) => {
+      return new Date(`2024/01/01 ${a}`) - new Date(`2024/01/01 ${b}`);
+    })
+    .forEach((key) => {
+      res[key] = transposed[key];
+    });
 
+  // show results and add refresh button
   let swimTimes = document.getElementById("swimTimes");
-
   if (swimTimes === null) {
-    // add a blank area to hold swim times
     let info = document.createElement("div");
     let times = JSON.stringify(res, null, 2);
     info.innerHTML = `
@@ -97,10 +116,7 @@ async function handleSwim() {
       .insertAdjacentElement("afterend", info);
     swimTimes = document.getElementById("swimTimes");
   }
-
   swimTimes.innerText = JSON.stringify(res, null, 2);
-
-  // date.addEventListener("change", handleSwim);
 }
 
 function runScript() {
@@ -134,6 +150,7 @@ function runScript() {
     return oldXHRsetRequestHeader.apply(this, arguments);
   };
 
+  // make handleSwim available globally
   window.handleSwim = handleSwim;
 }
 
