@@ -106,13 +106,14 @@ async function handleSwim() {
   let swimTimes = document.getElementById("swimTimes");
   if (swimTimes === null) {
     let info = document.createElement("div");
+    info.style.padding = "0 2em";
     let times = JSON.stringify(res, null, 2);
     info.innerHTML = `
       <button class="ant-btn" onclick="handleSwim()">Refresh</button>
       <pre id="swimTimes">${times}</pre>
     `;
     document
-      .querySelector("div.selfBookingDialog")
+      .querySelector("div.modal-footer")
       .insertAdjacentElement("afterend", info);
     swimTimes = document.getElementById("swimTimes");
   }
