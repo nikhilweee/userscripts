@@ -4,7 +4,7 @@
 // @match       https://secure.splitwise.com/*
 // @grant       none
 // @version     1.0
-// @author      Nikhil Verma
+// @author      nikhilweee
 // @description Splitwise Pro
 // ==/UserScript==
 

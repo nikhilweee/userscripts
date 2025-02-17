@@ -1,11 +1,11 @@
 // ==UserScript==
-// @name        WhatsApp Times
+// @name        WhatsApp Dual Timezone
 // @namespace   Violentmonkey Scripts
 // @match       https://web.whatsapp.com/*
 // @grant       none
 // @version     1.0
 // @author      nikhilweee
-// @description Dual Time Zones for WhatsApp
+// @description Show message timestamps in two timezones.
 // ==/UserScript==
 
 let lastChat = null;
@@ -16,17 +16,17 @@ function convertESTtoIST(time) {
   const [hours, minutes] = time12h.split(":");
   localDate.setHours(period === "pm" ? +hours + 12 : +hours, +minutes);
 
-  const istDate = localDate.toLocaleString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "Asia/Kolkata",
-  });
   const estDate = localDate.toLocaleString("en-IN", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
     timeZone: "America/New_York",
+  });
+  const istDate = localDate.toLocaleString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Kolkata",
   });
 
   return `${estDate} EST | ${istDate} IST`;

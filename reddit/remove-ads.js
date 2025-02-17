@@ -1,11 +1,11 @@
 // ==UserScript==
-// @name        Reddit Remove Ads
+// @name        Reddit Dim Ads
 // @namespace   Violentmonkey Scripts
 // @match       https://www.reddit.com/*
 // @grant       none
 // @version     1.0
-// @author      Nikhil Verma
-// @description Remove Ads from Reddit
+// @author      nikhilweee
+// @description Dim Ads on Reddit
 // ==/UserScript==
 
 function runScriptWhenReady() {
