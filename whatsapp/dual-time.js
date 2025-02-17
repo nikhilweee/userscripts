@@ -1,0 +1,62 @@
+// ==UserScript==
+// @name        WhatsApp Times
+// @namespace   Violentmonkey Scripts
+// @match       https://web.whatsapp.com/*
+// @grant       none
+// @version     1.0
+// @author      nikhilweee
+// @description Dual Time Zones for WhatsApp
+// ==/UserScript==
+
+let lastChat = null;
+
+function convertESTtoIST(time) {
+  const localDate = new Date();
+  const [time12h, period] = time.split(" ");
+  const [hours, minutes] = time12h.split(":");
+  localDate.setHours(period === "pm" ? +hours + 12 : +hours, +minutes);
+
+  const istDate = localDate.toLocaleString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Kolkata",
+  });
+  const estDate = localDate.toLocaleString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "America/New_York",
+  });
+
+  return `${estDate} EST | ${istDate} IST`;
+}
+
+function shouldUpdateTimestamps() {
+  const header = document.querySelector("#main header");
+  if (header === null) {
+    return false;
+  }
+  if (header.innerText !== lastChat) {
+    lastChat = header.innerText;
+    return true;
+  }
+  return false;
+}
+
+function updateTimestamps() {
+  document.querySelectorAll("span").forEach((span) => {
+    if ([" am", " pm"].includes(span.innerHTML.slice(-3))) {
+      span.innerHTML = convertESTtoIST(span.textContent);
+    }
+  });
+}
+
+function runScriptWhenReady() {
+  if (shouldUpdateTimestamps()) {
+    updateTimestamps();
+  }
+  setTimeout(runScriptWhenReady, 1000);
+}
+
+window.addEventListener("load", runScriptWhenReady);
