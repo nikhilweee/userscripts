@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Splitwise Pro
-// @namespace   Violentmonkey Scripts
+// @namespace   nikhilweee
 // @match       https://secure.splitwise.com/*
 // @grant       none
 // @version     1.0

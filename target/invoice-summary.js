@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Target Invoice Summary
-// @namespace   Violentmonkey Scripts
+// @namespace   nikhilweee
 // @match       https://www.target.com/orders/*/invoices/*
 // @grant       none
 // @version     1.0

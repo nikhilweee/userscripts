@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Trainerize All Appointments
-// @namespace   Violentmonkey Scripts
+// @namespace   nikhilweee
 // @match       https://newportswimandfitnesscenter.trainerize.com/app/client/*/dash
 // @grant       none
 // @version     1.0

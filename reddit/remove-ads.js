@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Reddit Dim Ads
-// @namespace   Violentmonkey Scripts
+// @namespace   nikhilweee
 // @match       https://www.reddit.com/*
 // @grant       none
 // @version     1.0

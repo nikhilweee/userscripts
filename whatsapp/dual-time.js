@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        WhatsApp Dual Timezone
-// @namespace   Violentmonkey Scripts
+// @namespace   nikhilweee
 // @match       https://web.whatsapp.com/*
 // @grant       none
 // @version     1.0

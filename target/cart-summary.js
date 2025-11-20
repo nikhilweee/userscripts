@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Target Cart Summary
-// @namespace   Violentmonkey Scripts
+// @namespace   nikhilweee
 // @match       https://www.target.com/cart
 // @grant       none
 // @version     1.0
