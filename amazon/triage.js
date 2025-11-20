@@ -48,7 +48,7 @@
       this.injectStyles();
       this.initObservers();
       this.initEvents();
-      this.renderClearButton();
+      this.renderToolbar();
       this.checkDetailPage();
     },
 
@@ -64,18 +64,36 @@
       try {
         localStorage.setItem(CONFIG.key, JSON.stringify(this.state));
       } catch (e) { }
+      this.updateToolbar();
     },
 
-    setStatus(asin, status) {
+    // Helper to handle both old (string) and new (object) state formats
+    getItem(asin) {
+      const val = this.state[asin];
+      if (!val) return null;
+      return typeof val === "string" ? { status: val, title: asin } : val;
+    },
+
+    setStatus(asin, status, title = null) {
       if (!asin) return;
-      if (this.state[asin] === status) delete this.state[asin];
-      else this.state[asin] = status;
+      const current = this.getItem(asin);
+
+      if (current && current.status === status) {
+        delete this.state[asin];
+      } else {
+        // Preserve existing title if not provided
+        const finalTitle = title || (current ? current.title : asin);
+        this.state[asin] = { status, title: finalTitle, ts: Date.now() };
+      }
+
       this.save();
       this.sync(asin);
     },
 
     sync(asin) {
-      const status = this.state[asin];
+      const item = this.getItem(asin);
+      const status = item ? item.status : null;
+
       document.querySelectorAll(`div[data-asin="${asin}"][data-at-ready="true"]`).forEach(el => {
         el.classList.remove("at-s", "at-d");
         if (status) el.classList.add(`at-${status}`);
@@ -88,6 +106,26 @@
       this.save();
       document.querySelectorAll(".at-s, .at-d").forEach(el => el.classList.remove("at-s", "at-d"));
       document.querySelector(".at-banner")?.remove();
+    },
+
+    getCounts() {
+      let s = 0, d = 0;
+      Object.values(this.state).forEach(v => {
+        const status = typeof v === "string" ? v : v.status;
+        if (status === "s") s++;
+        if (status === "d") d++;
+      });
+      return { s, d, total: s + d };
+    },
+
+    getItemsByStatus(statusKey) {
+      return Object.entries(this.state)
+        .map(([asin, val]) => {
+          const data = typeof val === "string" ? { status: val, title: asin } : val;
+          return { asin, ...data };
+        })
+        .filter(i => i.status === statusKey)
+        .sort((a, b) => (b.ts || 0) - (a.ts || 0));
     },
 
     processCard(el) {
@@ -109,7 +147,8 @@
       imgContainer.appendChild(ui);
 
       const asin = el.getAttribute("data-asin");
-      if (this.state[asin]) el.classList.add(`at-${this.state[asin]}`);
+      const item = this.getItem(asin);
+      if (item) el.classList.add(`at-${item.status}`);
     },
 
     injectStyles() {
@@ -121,13 +160,12 @@
           box-sizing: border-box; border: 0 solid transparent; pointer-events: none; z-index: 20;
         }
         
-        /* Shortlist (Green) */
+        /* Status Styles */
         .at-s { background: ${c.shortlist.bg}; }
         .at-s::after { border-width: 4px; border-color: ${c.shortlist.border}; }
         .at-btn.s { color: ${c.shortlist.border}; }
 
-        /* Discard (Red) */
-        .at-d { background: ${c.discard.bg}; opacity: 0.6; filter: grayscale(1); }
+        .at-d { background: ${c.discard.bg}; }
         .at-d::after { border-width: 4px; border-color: ${c.discard.border}; }
         .at-btn.d { color: ${c.discard.border}; }
 
@@ -141,37 +179,121 @@
         }
         .at-btn:hover { transform: scale(1.15); background: #f8f8f8; }
 
-        /* Banner & Button Shared Styles */
-        .at-banner, .at-clear {
-          display: inline-flex; align-items: center; justify-content: center;
-          padding: 8px 12px; border-radius: 4px; font-size: 14px; font-weight: 700;
-          font-family: inherit;
+        /* Toolbar */
+        .at-toolbar { display: flex; align-items: center; gap: 10px; padding: 12px 0; font-family: inherit; }
+        
+        .at-dropdown-wrap { position: relative; }
+        .at-dropdown {
+          position: absolute; top: 100%; left: 0; min-width: 300px; max-height: 400px; overflow-y: auto;
+          background: #fff; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          z-index: 1000; display: none; flex-direction: column;
         }
+        .at-dropdown.open { display: flex; }
+        .at-dropdown-item {
+          padding: 8px 12px; border-bottom: 1px solid #eee; font-size: 13px; color: #333; text-decoration: none;
+          display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .at-dropdown-item:hover { background: #f5f5f5; color: #111; }
+        .at-dropdown-item:last-child { border-bottom: none; }
 
-        /* Banner Specifics */
+        /* Buttons */
+        .at-btn-summary, .at-clear, .at-banner {
+          display: inline-flex; align-items: center; justify-content: center;
+          padding: 6px 12px; border-radius: 4px; font-size: 13px; font-weight: 700;
+          font-family: inherit; cursor: pointer; border: 1px solid transparent;
+        }
+        
+        .at-btn-summary.s { background: ${c.shortlist.bannerBg}; color: ${c.shortlist.text}; border-color: ${c.shortlist.bannerBorder}; }
+        .at-btn-summary.s:hover { background: #d1fae5; }
+        
+        .at-btn-summary.d { background: ${c.discard.bannerBg}; color: ${c.discard.text}; border-color: ${c.discard.bannerBorder}; }
+        .at-btn-summary.d:hover { background: #fee2e2; }
+
+        .at-clear { background: ${c.neutral.bg}; color: ${c.neutral.text}; border-color: ${c.neutral.border}; }
+        .at-clear:hover { background: ${c.neutral.hoverBg}; border-color: ${c.neutral.hoverBorder}; }
+
+        /* Banner */
         .at-banner { display: flex; width: fit-content; margin-bottom: 8px; gap: 6px; }
         .at-banner.at-s { background: ${c.shortlist.bannerBg}; color: ${c.shortlist.text}; border: 1px solid ${c.shortlist.bannerBorder}; }
         .at-banner.at-d { background: ${c.discard.bannerBg}; color: ${c.discard.text}; border: 1px solid ${c.discard.bannerBorder}; }
-
-        /* Clear Button Specifics */
-        .at-clear {
-          background: ${c.neutral.bg}; color: ${c.neutral.text}; border: 1px solid ${c.neutral.border};
-          cursor: pointer; transition: all 0.2s;
-        }
-        .at-clear:hover { background: ${c.neutral.hoverBg}; border-color: ${c.neutral.hoverBorder}; }
       `;
       const style = document.createElement("style");
       style.textContent = css;
       document.head.appendChild(style);
     },
 
-    initEvents() {
-      // Global Click Delegation
-      document.addEventListener("click", (e) => {
-        if (e.target.matches(".at-clear")) {
+    renderToolbar() {
+      const mainSlot = document.querySelector('.s-main-slot');
+      if (!mainSlot || document.querySelector('.at-toolbar')) return;
+
+      const wrapper = document.createElement('div');
+      wrapper.className = "at-toolbar";
+      mainSlot.parentNode.insertBefore(wrapper, mainSlot);
+      this.updateToolbar();
+
+      // Toolbar Events
+      wrapper.addEventListener('click', (e) => {
+        if (e.target.closest('.at-clear')) {
           this.clearAll();
-          return;
+        } else if (e.target.closest('.at-btn-summary')) {
+          const type = e.target.closest('.at-btn-summary').dataset.type;
+          this.toggleDropdown(type);
         }
+      });
+
+      // Close dropdowns on outside click
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.at-dropdown-wrap')) {
+          document.querySelectorAll('.at-dropdown').forEach(el => el.classList.remove('open'));
+        }
+      });
+    },
+
+    updateToolbar() {
+      const wrapper = document.querySelector('.at-toolbar');
+      if (!wrapper) return;
+
+      const { s, d, total } = this.getCounts();
+
+      wrapper.innerHTML = `
+        <div class="at-dropdown-wrap">
+          <button class="at-btn-summary s" data-type="s">Shortlist (${s}) ▼</button>
+          <div class="at-dropdown" id="at-drop-s"></div>
+        </div>
+
+        <div class="at-dropdown-wrap">
+          <button class="at-btn-summary d" data-type="d">Discard (${d}) ▼</button>
+          <div class="at-dropdown" id="at-drop-d"></div>
+        </div>
+
+        <button class="at-clear">Reset</button>
+      `;
+    },
+
+    toggleDropdown(type) {
+      const drop = document.getElementById(`at-drop-${type}`);
+      if (!drop) return;
+
+      const wasOpen = drop.classList.contains('open');
+      document.querySelectorAll('.at-dropdown').forEach(el => el.classList.remove('open'));
+
+      if (!wasOpen) {
+        const items = this.getItemsByStatus(type);
+        if (items.length === 0) {
+          drop.innerHTML = '<div class="at-dropdown-item">No items</div>';
+        } else {
+          drop.innerHTML = items.map(i => `
+            <a href="/dp/${i.asin}" class="at-dropdown-item" target="_blank" title="${i.title}">
+              ${i.title}
+            </a>
+          `).join('');
+        }
+        drop.classList.add('open');
+      }
+    },
+
+    initEvents() {
+      document.addEventListener("click", (e) => {
         const btn = e.target.closest(".at-btn");
         if (!btn) return;
 
@@ -180,22 +302,35 @@
 
         const card = btn.closest("div[data-asin]");
         if (!card) return;
-        this.setStatus(card.getAttribute("data-asin"), btn.classList.contains("s") ? "s" : "d");
+
+        // Try to grab title
+        const titleEl = card.querySelector("h2");
+        const title = titleEl ? titleEl.textContent.trim() : card.getAttribute("data-asin");
+
+        this.setStatus(card.getAttribute("data-asin"), btn.classList.contains("s") ? "s" : "d", title);
       });
 
-      // Hover Tracking
       document.addEventListener("mouseover", (e) => {
         const card = e.target.closest("div[data-asin]");
         this.hoverAsin = card ? card.getAttribute("data-asin") : null;
       });
 
-      // Keyboard Shortcuts
       document.addEventListener("keydown", (e) => {
         if (!this.hoverAsin || /INPUT|TEXTAREA/.test(e.target.tagName)) return;
         const k = e.key.toLowerCase();
-        if (k === "s") this.setStatus(this.hoverAsin, "s");
-        else if (k === "d") this.setStatus(this.hoverAsin, "d");
-        else if (k === "x") this.setStatus(this.hoverAsin, null);
+
+        let status = null;
+        if (k === "s") status = "s";
+        else if (k === "d") status = "d";
+        else if (k === "x") status = null;
+        else return;
+
+        // Try to grab title from the hovered card
+        const card = document.querySelector(`div[data-asin="${this.hoverAsin}"]`);
+        const titleEl = card ? card.querySelector("h2") : null;
+        const title = titleEl ? titleEl.textContent.trim() : this.hoverAsin;
+
+        this.setStatus(this.hoverAsin, status, title);
       });
     },
 
@@ -214,30 +349,18 @@
       document.querySelectorAll('div[data-asin]').forEach(el => this.processCard(el));
     },
 
-    renderClearButton() {
-      const mainSlot = document.querySelector('.s-main-slot');
-      if (!mainSlot) return;
-
-      const btn = document.createElement("button");
-      btn.className = "at-clear";
-      btn.textContent = "Reset Triage";
-
-      const wrapper = document.createElement('div');
-      wrapper.style.cssText = "display: flex; justify-content: flex-start; padding: 12px 0;";
-      wrapper.appendChild(btn);
-      mainSlot.parentNode.insertBefore(wrapper, mainSlot);
-    },
-
     checkDetailPage() {
       const asin = document.getElementById("ASIN")?.value;
-      if (asin && this.state[asin]) {
-        const title = document.getElementById("productTitle");
-        if (title) {
-          const st = this.state[asin];
-          const b = document.createElement("div");
-          b.className = `at-banner at-${st}`;
-          b.innerHTML = st === "s" ? "<span>★</span> Shortlisted" : "<span>✕</span> Discarded";
-          title.parentNode.insertBefore(b, title);
+      if (asin) {
+        const item = this.getItem(asin);
+        if (item) {
+          const title = document.getElementById("productTitle");
+          if (title) {
+            const b = document.createElement("div");
+            b.className = `at-banner at-${item.status}`;
+            b.innerHTML = item.status === "s" ? "<span>★</span> Shortlisted" : "<span>✕</span> Discarded";
+            title.parentNode.insertBefore(b, title);
+          }
         }
       }
     }
