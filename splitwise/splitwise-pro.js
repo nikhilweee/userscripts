@@ -6,6 +6,7 @@
 // @version     1.0
 // @author      nikhilweee
 // @description Splitwise Pro
+// @icon        https://www.splitwise.com/favicon.ico
 // ==/UserScript==
 
 function allElementsLoaded() {

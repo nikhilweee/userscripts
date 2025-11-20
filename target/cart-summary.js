@@ -6,6 +6,7 @@
 // @version     1.0
 // @author      nikhilweee
 // @description Summarize Target Cart
+// @icon        https://www.target.com/favicon.ico
 // ==/UserScript==
 
 function allElementsLoaded() {
