@@ -2,6 +2,7 @@
 // @name        Amazon Triage
 // @namespace   nikhilweee
 // @match       https://www.amazon.com/*
+// @match       https://www.amazon.in/*
 // @grant       none
 // @version     1.0
 // @author      nikhilweee
